@@ -41,5 +41,5 @@ PmxEditor\_plugin\User
 
 # 取得方法
 
-Gitあるいはリリースページ(https://github.com/khsk/mmd-add-transparency-morph/releases)から。  
+Gitあるいはリリースページ( https://github.com/khsk/mmd-add-transparency-morph/releases )から。  
 難しいかリリースが古い場合はtxtファイルのコピペの使い方その1で。

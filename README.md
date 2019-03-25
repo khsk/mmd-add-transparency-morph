@@ -31,7 +31,7 @@ PmxEditorを起動し、モデルを読み込みます。
 ## その3 DLL設置
 
 エクスプローラーで  
-PmxEditor\_plugin\User
+PmxEditor\_plugin\User  
 ディレクトリに「透明化モーフ一括追加.dll」を設置し、PmxEditorを起動しモデルを読み込みます。  
 [編集]-[プラグイン]-[User]-[透明化モーフ一括追加]を選択します。  
 

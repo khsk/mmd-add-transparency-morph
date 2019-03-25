@@ -1,0 +1,64 @@
+
+// Run()関数内の処理を記述.プラグイン変数は IPERunArgs args を通して取得可能.
+// 外部クラスの活用などは一般形式のスクリプトコードを使用してください.
+
+// コードに自動的に追加されるヘッダ／フッタはメニューから有効化／確認が可能(ヘッダは標準で有効設定)
+// コメント表記 "//" に 続けて "+H"(ヘッダ) "+F"(フッタ) "+CP"(Cプラグイン) を書けばメニュー設定を無視して強制追加.
+
+
+//MessageBox.Show(info.ModelName);
+
+// 二重実行による重複追加を防ぐために同名モーフが存在するか確認する(チェック関数にするのがベターだが、簡易形式への貼り付け実行を考慮し？ラムダや匿名関数で対応するといいかも)
+Func<string, bool> existsMorh = (string name) => {
+    foreach(IPXMorph m in pmx.Morph) {
+        if (m.Name == name) {
+            return true;
+        }
+    }
+    return false;
+};
+
+
+// 以下メイン処理
+foreach(IPXMaterial ma in material) {
+    IPXMorph m = bdx.Morph();
+    m.Name = ma.Name + " 透明化";
+    m.NameE = ma.NameE + " Transparent";
+    m.Panel = 4; // モーフパネル | 0:システム予約 1:眉(左下) 2:目(左上) 3:口(右上) 4:その他(右下)
+    m.Kind = MorphKind.Material;
+
+    if (existsMorh(m.Name)) {
+        continue;
+    }
+
+    IPXMaterialMorphOffset o = bdx.MaterialMorphOffset();
+
+    o.Material= ma;
+    // 手動新規作成を参考に全部1、透明度のみ0の材質モーフを作る
+    o.Clear(1);                         // 0初期化 | 乗算の場合は 1 初期化
+
+    // オフセット量
+    o.Diffuse = new V4(1, 1, 1, 0);     // 拡散色(RGBA) A成分は材質全体の非透過度
+    o.EdgeColor = new V4(1, 1, 1, 0);   // エッジ色(RGBA)
+
+    m.Offsets.Add(o);
+    pmx.Morph.Add(m);
+
+    // MMD用に表示枠の表情にも追加
+    // 表示枠用の要素に作ったモーフを登録して表情リストに追加
+    IPXMorphNodeItem mni = bdx.MorphNodeItem();
+    mni.Morph = m;
+    pmx.ExpressionNode.Items.Add(mni); // ExpressionNodeはPMD互換の表情枠指定用特殊ノード(表情枠(システム管理用) get)
+}
+
+// フッターでしている場合は不要なのでコメントアウト
+// PMX更新
+connect.Pmx.Update(pmx);
+// Form更新
+connect.Form.UpdateList(UpdateObject.Morph);
+connect.Form.UpdateList(UpdateObject.FrameExpression);
+// View更新 (Tビューで見ている場合を考えビューも更新するが不要かも)
+connect.View.PMDView.UpdateModel();         // Viewの更新が不要な場合はコメントアウト
+connect.View.PMDView.UpdateView();
+
+MessageBox.Show("処理が完了しました");

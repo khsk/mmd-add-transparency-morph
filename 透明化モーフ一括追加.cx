@@ -1,0 +1,219 @@
+<?xml version="1.0"?>
+<CSScriptData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ScriptType>CS2</ScriptType>
+  <CompilerVersion>4</CompilerVersion>
+  <ReferenceAssemblies>
+    <string>System.dll</string>
+    <string>System.Core.dll</string>
+    <string>System.Data.dll</string>
+    <string>System.Data.DataSetExtensions.dll</string>
+    <string>System.Deployment.dll</string>
+    <string>System.Drawing.dll</string>
+    <string>System.Windows.Forms.dll</string>
+    <string>System.Xml.dll</string>
+    <string>System.Xml.Linq.dll</string>
+    <string>Microsoft.CSharp.dll</string>
+  </ReferenceAssemblies>
+  <UsingText>using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Windows.Forms;
+using System.IO;
+using PEPlugin;
+using PEPlugin.SDX;
+using PEPlugin.Pmx;
+using PEPlugin.Pmd;
+using PEPlugin.Vmd;
+using PEPlugin.Vme;
+using PEPlugin.Form;
+using PEPlugin.View;
+using PXCPlugin;
+using SlimDX;
+using SlimDX.Direct3D9;
+using IES = PEPlugin.Vme.IPEVmeEventState;
+using IBS = PEPlugin.Vme.IPEVmeBoneState;
+using ISS = PEPlugin.Vme.IPEVmeSingleValueState;
+using IMS = PEPlugin.Vme.IPEVmeSingleValueState;
+using ICS = PEPlugin.Vme.IPEVmeCameraState;
+using ILS = PEPlugin.Vme.IPEVmeLightState;
+</UsingText>
+  <FullCodeText>
+// using項目はメニューから一括管理
+
+// Scriptプラグインクラス(クラス名変更不可)
+public class CSScriptClass : PEPluginClass
+{
+    // コンストラクタ
+    public CSScriptClass() : base()
+    {
+        // 起動オプション
+        // boot時実行(true/false), プラグインメニューへの登録(true/false), メニュー登録名("")
+        m_option = new PEPluginOption(false, true, "CSScript生成プラグイン");
+    }
+
+    // エントリポイント
+    public override void Run(IPERunArgs args)
+    {
+        base.Run(args);
+        try {
+            // ここへ処理を追加してください.
+            
+
+        }
+        catch (Exception ex) {
+            MessageBox.Show(ex.Message, "エラー", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+        }
+    }
+}
+</FullCodeText>
+  <CodeText>
+// Run()関数内の処理を記述.プラグイン変数は IPERunArgs args を通して取得可能.
+// 外部クラスの活用などは一般形式のスクリプトコードを使用してください.
+
+// コードに自動的に追加されるヘッダ／フッタはメニューから有効化／確認が可能(ヘッダは標準で有効設定)
+// コメント表記 "//" に 続けて "+H"(ヘッダ) "+F"(フッタ) "+CP"(Cプラグイン) を書けばメニュー設定を無視して強制追加.
+
+
+//MessageBox.Show(info.ModelName);
+
+// 二重実行による重複追加を防ぐために同名モーフが存在するか確認する(チェック関数にするのがベターだが、簡易形式への貼り付け実行を考慮し？ラムダや匿名関数で対応するといいかも)
+Func&lt;string, bool&gt; existsMorh = (string name) =&gt; {
+    foreach(IPXMorph m in pmx.Morph) {
+        if (m.Name == name) {
+            return true;
+        }
+    }
+    return false;
+};
+
+
+// 以下メイン処理
+foreach(IPXMaterial ma in material) {
+    IPXMorph m = bdx.Morph();
+    m.Name = ma.Name + " 透明化";
+    m.NameE = ma.NameE + " Transparent";
+    m.Panel = 4; // モーフパネル | 0:システム予約 1:眉(左下) 2:目(左上) 3:口(右上) 4:その他(右下)
+    m.Kind = MorphKind.Material;
+
+    if (existsMorh(m.Name)) {
+        continue;
+    }
+
+    IPXMaterialMorphOffset o = bdx.MaterialMorphOffset();
+
+    o.Material= ma;
+    // 手動新規作成を参考に全部1、透明度のみ0の材質モーフを作る
+    o.Clear(1);                         // 0初期化 | 乗算の場合は 1 初期化
+
+    // オフセット量
+    o.Diffuse = new V4(1, 1, 1, 0);     // 拡散色(RGBA) A成分は材質全体の非透過度
+    o.EdgeColor = new V4(1, 1, 1, 0);   // エッジ色(RGBA)
+
+    m.Offsets.Add(o);
+    pmx.Morph.Add(m);
+
+    // MMD用に表示枠の表情にも追加
+    // 表示枠用の要素に作ったモーフを登録して表情リストに追加
+    IPXMorphNodeItem mni = bdx.MorphNodeItem();
+    mni.Morph = m;
+    pmx.ExpressionNode.Items.Add(mni); // ExpressionNodeはPMD互換の表情枠指定用特殊ノード(表情枠(システム管理用) get)
+}
+
+// フッターでしている場合は不要なのでコメントアウト
+// PMX更新
+connect.Pmx.Update(pmx);
+// Form更新
+connect.Form.UpdateList(UpdateObject.Morph);
+connect.Form.UpdateList(UpdateObject.FrameExpression);
+// View更新 (Tビューで見ている場合を考えビューも更新するが不要かも)
+connect.View.PMDView.UpdateModel();         // Viewの更新が不要な場合はコメントアウト
+connect.View.PMDView.UpdateView();
+
+MessageBox.Show("処理が完了しました");</CodeText>
+  <CodeHeader>//
+// ---- 簡易編集用ヘッダコード ----
+
+// 常用接続変数一括登録
+
+// ホスト配下
+IPEPluginHost host = args.Host;
+IPEBuilder builder = host.Builder;
+IPEShortBuilder bd = host.Builder.SC;		// 短絡系ビルダ
+IPXPmxBuilder bdx = host.Builder.Pmx;		// PMXビルダ
+IPEConnector connect = host.Connector;
+IPEPMDViewConnector view = host.Connector.View.PMDView;
+
+// PMX関連
+IPXPmx pmx = connect.Pmx.GetCurrentState();     // PMX取得
+
+IPXHeader header = pmx.Header;                  // header   :ヘッダ
+IPXModelInfo info = pmx.ModelInfo;              // info     :モデル情報
+IList&lt;IPXVertex&gt; vertex = pmx.Vertex;           // vertex   :頂点   | リスト
+IList&lt;IPXMaterial&gt; material = pmx.Material;     // material :材質   | リスト
+IList&lt;IPXBone&gt; bone = pmx.Bone;                 // bone     :ボーン | リスト
+IList&lt;IPXMorph&gt; morph = pmx.Morph;				// morph    :モーフ | リスト
+IList&lt;IPXNode&gt; node = pmx.Node;					// node     :表示枠 | リスト
+IList&lt;IPXBody&gt; body = pmx.Body;                 // body     :剛体   | リスト
+IList&lt;IPXJoint&gt; joint = pmx.Joint;              // joint    :Joint  | リスト
+IList&lt;IPXSoftBody&gt; sbody = pmx.SoftBody;        // sbody    :SoftBody  | リスト
+
+</CodeHeader>
+  <CodeFooter>//
+// ---- 簡易編集用フッタコード ----
+
+// 更新処理
+// デフォルト設定ではフッタコードはOFF
+
+// PMX更新
+connect.Pmx.Update(pmx);
+
+// Form更新
+connect.Form.UpdateList(UpdateObject.All);  // 重い場合は引数を変更して個別に更新
+
+// View更新
+connect.View.PMDView.UpdateModel();         // Viewの更新が不要な場合はコメントアウト
+connect.View.PMDView.UpdateView();
+
+
+</CodeFooter>
+  <CodeHeader_CPugin>//
+// ---- 簡易編集用ヘッダコード ----
+
+// 常用接続変数一括登録
+IPXPmxBuilder bdx = m_bld;		// PMXビルダ
+IPXCPluginConnector connect = args.Connector;
+
+// PMX関連
+IPXPmx pmx = PXCBridge.GetCurrentPmx(connect);     // PMX取得
+
+IPXHeader header = pmx.Header;                  // header   :ヘッダ
+IPXModelInfo info = pmx.ModelInfo;              // info     :モデル情報
+IList&lt;IPXVertex&gt; vertex = pmx.Vertex;           // vertex   :頂点   | リスト
+IList&lt;IPXMaterial&gt; material = pmx.Material;     // material :材質   | リスト
+IList&lt;IPXBone&gt; bone = pmx.Bone;                 // bone     :ボーン | リスト
+IList&lt;IPXMorph&gt; morph = pmx.Morph;				// morph    :モーフ | リスト
+IList&lt;IPXNode&gt; node = pmx.Node;					// node     :表示枠 | リスト
+IList&lt;IPXBody&gt; body = pmx.Body;                 // body     :剛体   | リスト
+IList&lt;IPXJoint&gt; joint = pmx.Joint;              // joint    :Joint  | リスト
+IList&lt;IPXSoftBody&gt; sbody = pmx.SoftBody;        // sbody    :SoftBody  | リスト
+
+</CodeHeader_CPugin>
+  <CodeFooter_CPugin>//
+// ---- 簡易編集用フッタコード ----
+
+// 更新処理
+// デフォルト設定ではフッタコードはOFF
+
+// PMX更新
+PXCBridge.UpdatePmx(connect, pmx);
+
+</CodeFooter_CPugin>
+  <EnableHeader>true</EnableHeader>
+  <EnableFooter>false</EnableFooter>
+  <EnableCPluginMode>false</EnableCPluginMode>
+  <ActivePages>1</ActivePages>
+</CSScriptData>
